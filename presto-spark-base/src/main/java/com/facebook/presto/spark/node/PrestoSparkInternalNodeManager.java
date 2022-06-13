@@ -30,13 +30,18 @@ import static com.google.common.collect.Sets.union;
 public class PrestoSparkInternalNodeManager
         implements InternalNodeManager
 {
-    private static final InternalNode CURRENT_NODE = new InternalNode("presto-spark-current", URI.create("http://127.0.0.1:60040"), NodeVersion.UNKNOWN, true);
+    private static final InternalNode CURRENT_NODE = new InternalNode(
+            "presto-spark-current",
+            URI.create("http://127.0.0.1:60040"),
+            NodeVersion.UNKNOWN,
+            true);
     private static final Set<InternalNode> OTHER_NODES = ImmutableSet.of(
             new InternalNode("presto-spark-other-1", URI.create("http://127.0.0.1:60041"), NodeVersion.UNKNOWN, false),
             new InternalNode("presto-spark-other-2", URI.create("http://127.0.0.1:60042"), NodeVersion.UNKNOWN, false),
             new InternalNode("presto-spark-other-3", URI.create("http://127.0.0.1:60043"), NodeVersion.UNKNOWN, false));
     private static final AllNodes ALL_NODES = new AllNodes(
             union(ImmutableSet.of(CURRENT_NODE), OTHER_NODES),
+            ImmutableSet.of(),
             ImmutableSet.of(),
             ImmutableSet.of(),
             ImmutableSet.of(),
@@ -83,6 +88,12 @@ public class PrestoSparkInternalNodeManager
 
     @Override
     public Set<InternalNode> getResourceManagers()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Set<InternalNode> getCatalogServers()
     {
         throw new UnsupportedOperationException();
     }

@@ -613,10 +613,15 @@ public class ServerMainModule
         // presto announcement
         checkArgument(!(serverConfig.isResourceManager() && serverConfig.isCoordinator()),
                 "Server cannot be configured as both resource manager and coordinator");
+        checkArgument(!(serverConfig.isResourceManager() && serverConfig.isCatalogServer()),
+                "Server cannot be configured as both resource manager and catalog server");
+        checkArgument(!(serverConfig.isCatalogServer() && serverConfig.isCoordinator()),
+                "Server cannot be configured as both catalog server and coordinator");
         discoveryBinder(binder).bindHttpAnnouncement("presto")
                 .addProperty("node_version", nodeVersion.toString())
                 .addProperty("coordinator", String.valueOf(serverConfig.isCoordinator()))
                 .addProperty("resource_manager", String.valueOf(serverConfig.isResourceManager()))
+                .addProperty("catalog_server", String.valueOf(serverConfig.isCatalogServer()))
                 .addProperty("connectorIds", nullToEmpty(serverConfig.getDataSources()));
 
         // server info resource
@@ -740,7 +745,10 @@ public class ServerMainModule
 
     @Provides
     @Singleton
-    public static FragmentResultCacheManager createFragmentResultCacheManager(FileFragmentResultCacheConfig config, BlockEncodingSerde blockEncodingSerde, FragmentCacheStats fragmentCacheStats)
+    public static FragmentResultCacheManager createFragmentResultCacheManager(
+            FileFragmentResultCacheConfig config,
+            BlockEncodingSerde blockEncodingSerde,
+            FragmentCacheStats fragmentCacheStats)
     {
         if (config.isCachingEnabled()) {
             return new FileFragmentResultCacheManager(
