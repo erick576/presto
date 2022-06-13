@@ -45,6 +45,7 @@ public final class TpchQueryRunner
         DistributedQueryRunner queryRunner = TpchQueryRunnerBuilder.builder()
                 .setExtraProperties(extraProperties)
                 .setResourceManagerEnabled(true)
+                .setCatalogServerEnabled(true)
                 .setCoordinatorCount(coordinatorCount)
                 .build();
         queryRunner.waitForClusterToGetReady();
@@ -71,6 +72,7 @@ public final class TpchQueryRunner
                 .setCoordinatorProperties(coordinatorProperties)
                 .setExtraProperties(extraProperties)
                 .setResourceManagerEnabled(true)
+                .setCatalogServerEnabled(true)
                 .setCoordinatorCount(coordinatorCount)
                 .build();
         if (!skipClusterReadyCheck) {
