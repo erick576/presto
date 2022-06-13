@@ -88,6 +88,12 @@ public class PrestoSparkInternalNodeManager
     }
 
     @Override
+    public Set<InternalNode> getCatalogServers()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public AllNodes getAllNodes()
     {
         // TODO: Hack to make System connector work
