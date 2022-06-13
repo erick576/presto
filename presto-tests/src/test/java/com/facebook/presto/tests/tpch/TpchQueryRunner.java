@@ -45,25 +45,39 @@ public final class TpchQueryRunner
         DistributedQueryRunner queryRunner = TpchQueryRunnerBuilder.builder()
                 .setExtraProperties(extraProperties)
                 .setResourceManagerEnabled(true)
+                .setCatalogServerEnabled(true)
                 .setCoordinatorCount(coordinatorCount)
                 .build();
         queryRunner.waitForClusterToGetReady();
         return queryRunner;
     }
 
-    public static DistributedQueryRunner createQueryRunner(Map<String, String> resourceManagerProperties, Map<String, String> coordinatorProperties, Map<String, String> extraProperties, int coordinatorCount)
+    public static DistributedQueryRunner createQueryRunner(
+            Map<String, String> resourceManagerProperties,
+            Map<String, String> coordinatorProperties,
+            Map<String, String> extraProperties,
+            int coordinatorCount)
             throws Exception
     {
         return createQueryRunner(resourceManagerProperties, coordinatorProperties, extraProperties, coordinatorCount, false);
     }
 
-    public static DistributedQueryRunner createQueryRunnerWithNoClusterReadyCheck(Map<String, String> resourceManagerProperties, Map<String, String> coordinatorProperties, Map<String, String> extraProperties, int coordinatorCount)
+    public static DistributedQueryRunner createQueryRunnerWithNoClusterReadyCheck(
+            Map<String, String> resourceManagerProperties,
+            Map<String, String> coordinatorProperties,
+            Map<String, String> extraProperties,
+            int coordinatorCount)
             throws Exception
     {
         return createQueryRunner(resourceManagerProperties, coordinatorProperties, extraProperties, coordinatorCount, true);
     }
 
-    public static DistributedQueryRunner createQueryRunner(Map<String, String> resourceManagerProperties, Map<String, String> coordinatorProperties, Map<String, String> extraProperties, int coordinatorCount, boolean skipClusterReadyCheck)
+    public static DistributedQueryRunner createQueryRunner(
+            Map<String, String> resourceManagerProperties,
+            Map<String, String> coordinatorProperties,
+            Map<String, String> extraProperties,
+            int coordinatorCount,
+            boolean skipClusterReadyCheck)
             throws Exception
     {
         DistributedQueryRunner queryRunner = TpchQueryRunnerBuilder.builder()
@@ -71,6 +85,7 @@ public final class TpchQueryRunner
                 .setCoordinatorProperties(coordinatorProperties)
                 .setExtraProperties(extraProperties)
                 .setResourceManagerEnabled(true)
+                .setCatalogServerEnabled(true)
                 .setCoordinatorCount(coordinatorCount)
                 .build();
         if (!skipClusterReadyCheck) {
