@@ -74,7 +74,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static com.facebook.airlift.http.client.JsonResponseHandler.createJsonResponseHandler;
 import static com.facebook.airlift.http.client.Request.Builder.prepareGet;
@@ -141,6 +140,7 @@ public class DistributedQueryRunner
                 extraProperties,
                 ImmutableMap.of(),
                 ImmutableMap.of(),
+                ImmutableMap.of(),
                 DEFAULT_SQL_PARSER_OPTIONS,
                 ENVIRONMENT,
                 Optional.empty(),
@@ -162,6 +162,7 @@ public class DistributedQueryRunner
             Map<String, String> extraProperties,
             Map<String, String> coordinatorProperties,
             Map<String, String> resourceManagerProperties,
+            Map<String, String> catalogServerProperties,
             SqlParserOptions parserOptions,
             String environment,
             Optional<Path> baseDataDir,
@@ -241,13 +242,6 @@ public class DistributedQueryRunner
             }
 
             if (catalogServerEnabled) {
-                // TODO enable catalog server to have its own property value
-                Map<String, String> catalogServerProperties = new HashMap<>();
-                catalogServerProperties.putAll(
-                        extraProperties.entrySet()
-                        .stream()
-                        .filter(property -> !property.getKey().contains("resource"))
-                        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
                 catalogServer = Optional.of(closer.register(createTestingPrestoServer(
                         discoveryUrl,
                         false,
@@ -826,6 +820,7 @@ public class DistributedQueryRunner
         private Map<String, String> extraProperties = ImmutableMap.of();
         private Map<String, String> coordinatorProperties = ImmutableMap.of();
         private Map<String, String> resourceManagerProperties = ImmutableMap.of();
+        private Map<String, String> catalogServerProperties = ImmutableMap.of();
         private SqlParserOptions parserOptions = DEFAULT_SQL_PARSER_OPTIONS;
         private String environment = ENVIRONMENT;
         private Optional<Path> baseDataDir = Optional.empty();
@@ -883,6 +878,12 @@ public class DistributedQueryRunner
         public Builder setResourceManagerProperties(Map<String, String> resourceManagerProperties)
         {
             this.resourceManagerProperties = resourceManagerProperties;
+            return this;
+        }
+
+        public Builder setCatalogServerProperties(Map<String, String> catalogServerProperties)
+        {
+            this.catalogServerProperties = catalogServerProperties;
             return this;
         }
 
@@ -950,6 +951,7 @@ public class DistributedQueryRunner
                     extraProperties,
                     coordinatorProperties,
                     resourceManagerProperties,
+                    catalogServerProperties,
                     parserOptions,
                     environment,
                     baseDataDir,
