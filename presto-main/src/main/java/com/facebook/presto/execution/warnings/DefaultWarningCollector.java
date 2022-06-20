@@ -13,10 +13,15 @@
  */
 package com.facebook.presto.execution.warnings;
 
+import com.facebook.drift.annotations.ThriftConstructor;
+import com.facebook.drift.annotations.ThriftField;
+import com.facebook.drift.annotations.ThriftStruct;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.PrestoWarning;
 import com.facebook.presto.spi.WarningCode;
 import com.facebook.presto.spi.WarningCollector;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -36,13 +41,26 @@ public class DefaultWarningCollector
 {
     @GuardedBy("this")
     private final Multimap<WarningCode, PrestoWarning> warnings = LinkedHashMultimap.create();
-    private final WarningCollectorConfig config;
-    private final WarningHandlingLevel warningHandlingLevel;
+    public final WarningCollectorConfig config;
+    public final WarningHandlingLevel warningHandlingLevel;
 
-    public DefaultWarningCollector(WarningCollectorConfig config, WarningHandlingLevel warningHandlingLevel)
+    @JsonCreator
+    public DefaultWarningCollector(
+            @JsonProperty("config") WarningCollectorConfig config,
+            @JsonProperty("warningHandlingLevel") WarningHandlingLevel warningHandlingLevel)
     {
         this.config = requireNonNull(config, "config is null");
         this.warningHandlingLevel = warningHandlingLevel;
+    }
+
+    @JsonProperty
+    public WarningCollectorConfig getConfig() {
+        return this.config;
+    }
+
+    @JsonProperty
+    public WarningHandlingLevel getWarningHandlingLevel() {
+        return this.warningHandlingLevel;
     }
 
     @Override

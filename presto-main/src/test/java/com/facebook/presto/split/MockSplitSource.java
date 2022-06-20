@@ -22,6 +22,7 @@ import com.facebook.presto.spi.NodeProvider;
 import com.facebook.presto.spi.connector.ConnectorPartitionHandle;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.schedule.NodeSelectionStrategy;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -61,6 +62,7 @@ public class MockSplitSource
     private SettableFuture<List<Split>> nextBatchFuture = COMPLETED_FUTURE;
     private int nextBatchMaxSize;
 
+    @JsonCreator
     public MockSplitSource()
     {
     }

@@ -17,6 +17,8 @@ import com.facebook.presto.execution.warnings.WarningCollectorConfig;
 import com.facebook.presto.spi.PrestoWarning;
 import com.facebook.presto.spi.WarningCode;
 import com.facebook.presto.spi.WarningCollector;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
@@ -36,14 +38,23 @@ public class TestingWarningCollector
         implements WarningCollector
 {
     @GuardedBy("this")
-    private final Multimap<WarningCode, PrestoWarning> warnings = LinkedHashMultimap.create();
+    public final Multimap<WarningCode, PrestoWarning> warnings = LinkedHashMultimap.create();
+
     private final WarningCollectorConfig config;
 
-    private final boolean addWarnings;
+    public final boolean addWarnings;
+
+    public final TestingWarningCollectorConfig testConfig;
+
     private final AtomicInteger warningCode = new AtomicInteger();
 
-    public TestingWarningCollector(WarningCollectorConfig config, TestingWarningCollectorConfig testConfig)
+    @JsonCreator
+    public TestingWarningCollector(
+            @JsonProperty("config") WarningCollectorConfig config,
+            @JsonProperty("testConfig") TestingWarningCollectorConfig testConfig)
+
     {
+        this.testConfig = testConfig;
         this.config = requireNonNull(config, "config is null");
         requireNonNull(testConfig, "testConfig is null");
         addWarnings = testConfig.getAddWarnings();
@@ -52,6 +63,16 @@ public class TestingWarningCollector
             add(createTestWarning(warningCode));
         }
         warningCode.set(testConfig.getPreloadedWarnings());
+    }
+
+    @JsonProperty
+    public WarningCollectorConfig getConfig() {
+        return this.config;
+    }
+
+    @JsonProperty
+    public TestingWarningCollectorConfig getTestConfig() {
+        return this.testConfig;
     }
 
     @Override

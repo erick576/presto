@@ -14,6 +14,8 @@
 package com.facebook.presto.spi;
 
 import com.facebook.presto.spi.connector.ConnectorPartitionHandle;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,10 +30,15 @@ public class FixedSplitSource
         implements ConnectorSplitSource
 {
     private final List<ConnectorSplit> splits;
+
+    private Iterable<? extends ConnectorSplit> interfaceSplits;
     private int offset;
 
-    public FixedSplitSource(Iterable<? extends ConnectorSplit> splits)
+    @JsonCreator
+    public FixedSplitSource(
+            @JsonProperty("splits") Iterable<? extends ConnectorSplit> splits)
     {
+        this.interfaceSplits = splits;
         requireNonNull(splits, "splits is null");
         List<ConnectorSplit> splitsList = new ArrayList<>();
         for (ConnectorSplit split : splits) {

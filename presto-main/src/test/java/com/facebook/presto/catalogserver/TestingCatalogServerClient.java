@@ -17,6 +17,9 @@ import com.facebook.presto.SessionRepresentation;
 import com.facebook.presto.common.CatalogSchemaName;
 import com.facebook.presto.common.QualifiedObjectName;
 import com.facebook.presto.metadata.QualifiedTablePrefix;
+import com.facebook.presto.spi.TableHandle;
+import com.facebook.presto.spi.WarningCollector;
+import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.transaction.TransactionInfo;
 
 class TestingCatalogServerClient
@@ -86,5 +89,11 @@ class TestingCatalogServerClient
     public String getReferencedMaterializedViews(TransactionInfo transactionInfo, SessionRepresentation session, QualifiedObjectName tableName)
     {
         return "[\"hive.tpch.test_customer_base\"]";
+    }
+
+    @Override
+    public String getSplits(SessionRepresentation session, String table, ConnectorSplitManager.SplitSchedulingStrategy splitSchedulingStrategy, String warningCollector)
+    {
+        return null;
     }
 }

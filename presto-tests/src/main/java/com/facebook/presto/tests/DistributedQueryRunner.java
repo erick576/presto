@@ -39,7 +39,7 @@ import com.facebook.presto.spi.QueryId;
 import com.facebook.presto.spi.WarningCollector;
 import com.facebook.presto.spi.eventlistener.EventListener;
 import com.facebook.presto.split.PageSourceManager;
-import com.facebook.presto.split.SplitManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.sql.parser.SqlParserOptions;
 import com.facebook.presto.sql.planner.ConnectorPlanOptimizerManager;
 import com.facebook.presto.sql.planner.NodePartitioningManager;
@@ -453,7 +453,7 @@ public class DistributedQueryRunner
     }
 
     @Override
-    public SplitManager getSplitManager()
+    public Split getSplitManager()
     {
         checkState(coordinators.size() == 1, "Expected a single coordinator");
         return coordinators.get(0).getSplitManager();

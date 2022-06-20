@@ -38,7 +38,7 @@ import com.facebook.presto.spi.plan.PlanNode;
 import com.facebook.presto.spi.plan.PlanNodeId;
 import com.facebook.presto.spi.plan.TableScanNode;
 import com.facebook.presto.split.CloseableSplitSourceProvider;
-import com.facebook.presto.split.SplitManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.split.SplitSource;
 import com.facebook.presto.sql.planner.PartitioningHandle;
 import com.facebook.presto.sql.planner.PartitioningProviderManager;
@@ -94,14 +94,14 @@ public class PrestoSparkRddFactory
 {
     private static final Logger log = Logger.get(PrestoSparkRddFactory.class);
 
-    private final SplitManager splitManager;
+    private final Split splitManager;
     private final PartitioningProviderManager partitioningProviderManager;
     private final JsonCodec<PrestoSparkTaskDescriptor> taskDescriptorJsonCodec;
     private final Codec<TaskSource> taskSourceCodec;
 
     @Inject
     public PrestoSparkRddFactory(
-            SplitManager splitManager,
+            Split splitManager,
             PartitioningProviderManager partitioningProviderManager,
             JsonCodec<PrestoSparkTaskDescriptor> taskDescriptorJsonCodec,
             Codec<TaskSource> taskSourceCodec)

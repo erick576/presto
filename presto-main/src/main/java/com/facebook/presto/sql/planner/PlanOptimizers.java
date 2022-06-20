@@ -20,7 +20,7 @@ import com.facebook.presto.cost.StatsCalculator;
 import com.facebook.presto.cost.TaskCountEstimator;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.split.PageSourceManager;
-import com.facebook.presto.split.SplitManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.iterative.IterativeOptimizer;
 import com.facebook.presto.sql.planner.iterative.Rule;
@@ -176,7 +176,7 @@ public class PlanOptimizers
             Metadata metadata,
             SqlParser sqlParser,
             MBeanExporter exporter,
-            SplitManager splitManager,
+            Split splitManager,
             ConnectorPlanOptimizerManager planOptimizerManager,
             PageSourceManager pageSourceManager,
             StatsCalculator statsCalculator,
@@ -220,7 +220,7 @@ public class PlanOptimizers
             SqlParser sqlParser,
             boolean forceSingleNode,
             MBeanExporter exporter,
-            SplitManager splitManager,
+            Split splitManager,
             ConnectorPlanOptimizerManager planOptimizerManager,
             PageSourceManager pageSourceManager,
             StatsCalculator statsCalculator,

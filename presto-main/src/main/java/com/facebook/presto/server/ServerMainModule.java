@@ -32,6 +32,7 @@ import com.facebook.presto.block.BlockJsonSerde;
 import com.facebook.presto.catalogserver.CatalogServerClient;
 import com.facebook.presto.catalogserver.RandomCatalogServerAddressSelector;
 import com.facebook.presto.catalogserver.RemoteMetadataManager;
+import com.facebook.presto.catalogserver.RemoteSplitManager;
 import com.facebook.presto.client.NodeVersion;
 import com.facebook.presto.client.ServerInfo;
 import com.facebook.presto.common.block.Block;
@@ -159,6 +160,7 @@ import com.facebook.presto.split.PageSinkManager;
 import com.facebook.presto.split.PageSinkProvider;
 import com.facebook.presto.split.PageSourceManager;
 import com.facebook.presto.split.PageSourceProvider;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.split.SplitManager;
 import com.facebook.presto.sql.Serialization.ExpressionDeserializer;
 import com.facebook.presto.sql.Serialization.ExpressionSerializer;
@@ -577,6 +579,13 @@ public class ServerMainModule
 
         // split manager
         binder.bind(SplitManager.class).in(Scopes.SINGLETON);
+        if (serverConfig.isCatalogServerEnabled() && serverConfig.isCoordinator()) {
+            binder.bind(RemoteSplitManager.class).in(Scopes.SINGLETON);
+            binder.bind(Split.class).to(RemoteSplitManager.class).in(Scopes.SINGLETON);
+        }
+        else {
+            binder.bind(Split.class).to(SplitManager.class).in(Scopes.SINGLETON);
+        }
 
         // partitioning provider manager
         binder.bind(PartitioningProviderManager.class).in(Scopes.SINGLETON);

@@ -25,6 +25,11 @@ import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.ConnectorMaterializedViewDefinition;
 import com.facebook.presto.spi.TableHandle;
+import com.facebook.presto.spi.WarningCollector;
+import com.facebook.presto.spi.connector.ConnectorSplitManager;
+import com.facebook.presto.split.Split;
+import com.facebook.presto.split.SplitSource;
+import com.facebook.presto.testing.TestingWarningCollector;
 import com.facebook.presto.transaction.TransactionInfo;
 import com.facebook.presto.transaction.TransactionManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -44,14 +49,16 @@ public class CatalogServer
     private static final String EMPTY_STRING = "";
 
     private final Metadata metadataProvider;
+    private final Split splitProvider;
     private final SessionPropertyManager sessionPropertyManager;
     private final TransactionManager transactionManager;
     private final ObjectMapper objectMapper;
 
     @Inject
-    public CatalogServer(MetadataManager metadataProvider, SessionPropertyManager sessionPropertyManager, TransactionManager transactionManager, ObjectMapper objectMapper)
+    public CatalogServer(MetadataManager metadataProvider, Split splitProvider, SessionPropertyManager sessionPropertyManager, TransactionManager transactionManager, ObjectMapper objectMapper)
     {
         this.metadataProvider = requireNonNull(metadataProvider, "metadataProvider is null");
+        this.splitProvider = requireNonNull(splitProvider, "splitProvider is null");
         this.sessionPropertyManager = requireNonNull(sessionPropertyManager, "sessionPropertyManager is null");
         this.transactionManager = requireNonNull(transactionManager, "transactionManager is null");
         this.objectMapper = requireNonNull(objectMapper, "handleResolver is null");
@@ -150,6 +157,23 @@ public class CatalogServer
         List<QualifiedObjectName> referencedMaterializedViewsList = metadataProvider.getReferencedMaterializedViews(session.toSession(sessionPropertyManager), tableName);
         if (!referencedMaterializedViewsList.isEmpty()) {
             return writeValueAsString(referencedMaterializedViewsList, objectMapper);
+        }
+        return EMPTY_STRING;
+    }
+
+    @ThriftMethod
+    public String getSplits(SessionRepresentation session, String table, ConnectorSplitManager.SplitSchedulingStrategy splitSchedulingStrategy, String warningCollector)
+    {
+        SplitSource splits = null;
+        try {
+            splits = splitProvider.getSplits(session.toSession(sessionPropertyManager), objectMapper.readValue(table, TableHandle.class), splitSchedulingStrategy, objectMapper.readValue(warningCollector, TestingWarningCollector.class));
+        }
+        catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        if (splits != null) {
+            System.out.println(writeValueAsString(splits, objectMapper));
+            return writeValueAsString(splits, objectMapper);
         }
         return EMPTY_STRING;
     }

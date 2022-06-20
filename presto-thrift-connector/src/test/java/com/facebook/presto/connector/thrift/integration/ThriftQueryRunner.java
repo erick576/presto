@@ -33,7 +33,7 @@ import com.facebook.presto.server.testing.TestingPrestoServer;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.eventlistener.EventListener;
 import com.facebook.presto.split.PageSourceManager;
-import com.facebook.presto.split.SplitManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.sql.planner.ConnectorPlanOptimizerManager;
 import com.facebook.presto.sql.planner.NodePartitioningManager;
 import com.facebook.presto.testing.MaterializedResult;
@@ -206,7 +206,7 @@ public final class ThriftQueryRunner
         }
 
         @Override
-        public SplitManager getSplitManager()
+        public Split getSplitManager()
         {
             return source.getSplitManager();
         }

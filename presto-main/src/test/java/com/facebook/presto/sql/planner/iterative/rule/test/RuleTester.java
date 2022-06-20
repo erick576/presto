@@ -24,7 +24,7 @@ import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.spi.constraints.TableConstraint;
 import com.facebook.presto.spi.plan.LogicalPropertiesProvider;
 import com.facebook.presto.split.PageSourceManager;
-import com.facebook.presto.split.SplitManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.RuleStatsRecorder;
 import com.facebook.presto.sql.planner.assertions.OptimizerAssert;
@@ -55,7 +55,7 @@ public class RuleTester
     private final Session session;
     private final LocalQueryRunner queryRunner;
     private final TransactionManager transactionManager;
-    private final SplitManager splitManager;
+    private final Split splitManager;
     private final PageSourceManager pageSourceManager;
     private final AccessControl accessControl;
     private final SqlParser sqlParser;
@@ -161,7 +161,7 @@ public class RuleTester
         return session;
     }
 
-    public SplitManager getSplitManager()
+    public Split getSplitManager()
     {
         return splitManager;
     }

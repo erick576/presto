@@ -56,6 +56,7 @@ import com.facebook.presto.spi.eventlistener.EventListener;
 import com.facebook.presto.spi.function.FunctionImplementationType;
 import com.facebook.presto.spi.security.PrincipalType;
 import com.facebook.presto.split.PageSourceManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.split.SplitManager;
 import com.facebook.presto.sql.parser.SqlParserOptions;
 import com.facebook.presto.sql.planner.ConnectorPlanOptimizerManager;
@@ -134,7 +135,7 @@ public class PrestoSparkQueryRunner
 
     private final TransactionManager transactionManager;
     private final Metadata metadata;
-    private final SplitManager splitManager;
+    private final Split splitManager;
     private final PageSourceManager pageSourceManager;
     private final NodePartitioningManager nodePartitioningManager;
     private final ConnectorPlanOptimizerManager connectorPlanOptimizerManager;
@@ -375,7 +376,7 @@ public class PrestoSparkQueryRunner
     }
 
     @Override
-    public SplitManager getSplitManager()
+    public Split getSplitManager()
     {
         return splitManager;
     }

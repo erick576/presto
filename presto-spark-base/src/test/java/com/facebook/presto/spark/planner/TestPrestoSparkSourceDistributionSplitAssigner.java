@@ -26,6 +26,8 @@ import com.facebook.presto.spi.plan.PlanNodeId;
 import com.facebook.presto.spi.schedule.NodeSelectionStrategy;
 import com.facebook.presto.split.SplitSource;
 import com.facebook.presto.testing.TestingTransactionHandle;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -394,7 +396,9 @@ public class TestPrestoSparkSourceDistributionSplitAssigner
         private int position;
         private boolean closed;
 
-        private MockSplitSource(List<Split> splits)
+        @JsonCreator
+        private MockSplitSource(
+                @JsonProperty("splits") List<Split> splits)
         {
             this.splits = ImmutableList.copyOf(requireNonNull(splits, "splits is null"));
         }

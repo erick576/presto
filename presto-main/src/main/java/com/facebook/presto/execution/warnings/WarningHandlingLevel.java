@@ -13,9 +13,25 @@
  */
 package com.facebook.presto.execution.warnings;
 
+import com.facebook.drift.annotations.ThriftEnum;
+import com.facebook.drift.annotations.ThriftEnumValue;
+
+@ThriftEnum
 public enum WarningHandlingLevel
 {
-    SUPPRESS,
-    NORMAL,
-    AS_ERROR
+    SUPPRESS(1),
+    NORMAL(2),
+    AS_ERROR(3);
+    private final int value;
+
+    WarningHandlingLevel(int value)
+    {
+        this.value = value;
+    }
+
+    @ThriftEnumValue
+    public int getValue()
+    {
+        return value;
+    }
 }

@@ -18,6 +18,8 @@ import com.facebook.presto.spi.ConnectorId;
 import com.facebook.presto.spi.connector.ConnectorPartitionHandle;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.split.SplitSource;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -37,7 +39,9 @@ public class LazySplitSource
     @GuardedBy("this")
     private boolean closed;
 
-    public LazySplitSource(Supplier<SplitSource> supplier)
+    @JsonCreator
+    public LazySplitSource(
+            @JsonProperty("supplier") Supplier<SplitSource> supplier)
     {
         this.supplier = requireNonNull(supplier, "supplier is null");
     }

@@ -101,7 +101,6 @@ import com.facebook.presto.metadata.MetadataUtil;
 import com.facebook.presto.metadata.QualifiedTablePrefix;
 import com.facebook.presto.metadata.SchemaPropertyManager;
 import com.facebook.presto.metadata.SessionPropertyManager;
-import com.facebook.presto.metadata.Split;
 import com.facebook.presto.metadata.TablePropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.operator.Driver;
@@ -144,6 +143,7 @@ import com.facebook.presto.spiller.StandaloneSpillerFactory;
 import com.facebook.presto.spiller.TempStorageStandaloneSpillerFactory;
 import com.facebook.presto.split.PageSinkManager;
 import com.facebook.presto.split.PageSourceManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.split.SplitManager;
 import com.facebook.presto.split.SplitSource;
 import com.facebook.presto.sql.analyzer.Analysis;
@@ -282,7 +282,7 @@ public class LocalQueryRunner
     private final CostCalculator estimatedExchangesCostCalculator;
     private final TaskCountEstimator taskCountEstimator;
     private final TestingAccessControlManager accessControl;
-    private final SplitManager splitManager;
+    private final Split splitManager;
     private final BlockEncodingManager blockEncodingManager;
     private final PageSourceManager pageSourceManager;
     private final IndexManager indexManager;
@@ -595,7 +595,7 @@ public class LocalQueryRunner
         return pageSourceManager;
     }
 
-    public SplitManager getSplitManager()
+    public Split getSplitManager()
     {
         return splitManager;
     }
@@ -886,7 +886,7 @@ public class LocalQueryRunner
 
             ImmutableSet.Builder<ScheduledSplit> scheduledSplits = ImmutableSet.builder();
             while (!splitSource.isFinished()) {
-                for (Split split : getNextBatch(splitSource)) {
+                for (com.facebook.presto.metadata.Split split : getNextBatch(splitSource)) {
                     scheduledSplits.add(new ScheduledSplit(sequenceId++, tableScan.getId(), split));
                 }
             }
@@ -1032,7 +1032,7 @@ public class LocalQueryRunner
         return logicalPlanner.plan(analysis, stage);
     }
 
-    private static List<Split> getNextBatch(SplitSource splitSource)
+    private static List<com.facebook.presto.metadata.Split> getNextBatch(SplitSource splitSource)
     {
         return getFutureValue(splitSource.getNextBatch(NOT_PARTITIONED, Lifespan.taskWide(), 1000)).getSplits();
     }

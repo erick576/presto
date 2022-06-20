@@ -21,6 +21,8 @@ import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorSplitSource.ConnectorSplitBatch;
 import com.facebook.presto.spi.connector.ConnectorPartitionHandle;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -37,10 +39,11 @@ public class ConnectorAwareSplitSource
     private final ConnectorTransactionHandle transactionHandle;
     private final ConnectorSplitSource source;
 
+    @JsonCreator
     public ConnectorAwareSplitSource(
-            ConnectorId connectorId,
-            ConnectorTransactionHandle transactionHandle,
-            ConnectorSplitSource source)
+            @JsonProperty("connectorId") ConnectorId connectorId,
+            @JsonProperty("transactionHandle") ConnectorTransactionHandle transactionHandle,
+            @JsonProperty("source") ConnectorSplitSource source)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.transactionHandle = requireNonNull(transactionHandle, "transactionHandle is null");

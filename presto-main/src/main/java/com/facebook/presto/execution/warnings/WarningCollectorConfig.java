@@ -14,6 +14,10 @@
 package com.facebook.presto.execution.warnings;
 
 import com.facebook.airlift.configuration.Config;
+import com.facebook.presto.spi.WarningCollector;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 import static com.facebook.presto.execution.warnings.WarningHandlingLevel.NORMAL;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -31,6 +35,7 @@ public class WarningCollectorConfig
         return this;
     }
 
+    @JsonProperty
     public int getMaxWarnings()
     {
         return maxWarnings;
@@ -43,6 +48,7 @@ public class WarningCollectorConfig
         return this;
     }
 
+    @JsonProperty
     public WarningHandlingLevel getWarningHandlingLevel()
     {
         return warningHandlingLevel;

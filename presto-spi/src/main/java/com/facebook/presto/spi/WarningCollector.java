@@ -13,6 +13,8 @@
  */
 package com.facebook.presto.spi;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+
 import java.util.Collections;
 import java.util.List;
 

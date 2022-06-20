@@ -59,7 +59,7 @@ import com.facebook.presto.spi.session.PropertyMetadata;
 import com.facebook.presto.split.PageSinkManager;
 import com.facebook.presto.split.PageSourceManager;
 import com.facebook.presto.split.RecordPageSourceProvider;
-import com.facebook.presto.split.SplitManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.sql.planner.ConnectorPlanOptimizerManager;
 import com.facebook.presto.sql.planner.PartitioningProviderManager;
 import com.facebook.presto.sql.planner.planPrinter.RowExpressionFormatter;
@@ -98,7 +98,7 @@ public class ConnectorManager
     private final MetadataManager metadataManager;
     private final CatalogManager catalogManager;
     private final AccessControlManager accessControlManager;
-    private final SplitManager splitManager;
+    private final Split splitManager;
     private final PageSourceManager pageSourceManager;
     private final IndexManager indexManager;
     private final PartitioningProviderManager partitioningProviderManager;
@@ -133,7 +133,7 @@ public class ConnectorManager
             MetadataManager metadataManager,
             CatalogManager catalogManager,
             AccessControlManager accessControlManager,
-            SplitManager splitManager,
+            Split splitManager,
             PageSourceManager pageSourceManager,
             IndexManager indexManager,
             PartitioningProviderManager partitioningProviderManager,

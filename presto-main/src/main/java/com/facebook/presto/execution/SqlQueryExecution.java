@@ -41,7 +41,7 @@ import com.facebook.presto.spi.plan.PlanNodeIdAllocator;
 import com.facebook.presto.spi.resourceGroups.QueryType;
 import com.facebook.presto.spi.resourceGroups.ResourceGroupQueryLimits;
 import com.facebook.presto.split.CloseableSplitSourceProvider;
-import com.facebook.presto.split.SplitManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.QueryExplainer;
@@ -107,7 +107,7 @@ public class SqlQueryExecution
     private final int retryCount;
     private final Metadata metadata;
     private final SqlParser sqlParser;
-    private final SplitManager splitManager;
+    private final Split splitManager;
     private final List<PlanOptimizer> planOptimizers;
     private final List<PlanOptimizer> runtimePlanOptimizers;
     private final PlanFragmenter planFragmenter;
@@ -139,7 +139,7 @@ public class SqlQueryExecution
             Metadata metadata,
             AccessControl accessControl,
             SqlParser sqlParser,
-            SplitManager splitManager,
+            Split splitManager,
             List<PlanOptimizer> planOptimizers,
             List<PlanOptimizer> runtimePlanOptimizers,
             PlanFragmenter planFragmenter,
@@ -735,7 +735,7 @@ public class SqlQueryExecution
         private final Metadata metadata;
         private final AccessControl accessControl;
         private final SqlParser sqlParser;
-        private final SplitManager splitManager;
+        private final Split splitManager;
         private final List<PlanOptimizer> planOptimizers;
         private final List<PlanOptimizer> runtimePlanOptimizers;
         private final PlanFragmenter planFragmenter;
@@ -758,7 +758,7 @@ public class SqlQueryExecution
                 AccessControl accessControl,
                 SqlParser sqlParser,
                 LocationFactory locationFactory,
-                SplitManager splitManager,
+                Split splitManager,
                 PlanOptimizers planOptimizers,
                 PlanFragmenter planFragmenter,
                 RemoteTaskFactory remoteTaskFactory,

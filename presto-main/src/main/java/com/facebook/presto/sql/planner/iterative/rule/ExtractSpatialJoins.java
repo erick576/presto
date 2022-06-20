@@ -29,7 +29,6 @@ import com.facebook.presto.matching.Captures;
 import com.facebook.presto.matching.Pattern;
 import com.facebook.presto.metadata.FunctionAndTypeManager;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.Split;
 import com.facebook.presto.metadata.TableLayoutResult;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorPageSource;
@@ -48,7 +47,7 @@ import com.facebook.presto.spi.relation.CallExpression;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.facebook.presto.spi.relation.VariableReferenceExpression;
 import com.facebook.presto.split.PageSourceManager;
-import com.facebook.presto.split.SplitManager;
+import com.facebook.presto.split.Split;
 import com.facebook.presto.split.SplitSource;
 import com.facebook.presto.split.SplitSource.SplitBatch;
 import com.facebook.presto.sql.planner.iterative.Rule;
@@ -158,10 +157,10 @@ public class ExtractSpatialJoins
     private static final TypeSignature SPHERICAL_GEOGRAPHY_TYPE_SIGNATURE = parseTypeSignature("SphericalGeography");
 
     private final Metadata metadata;
-    private final SplitManager splitManager;
+    private final Split splitManager;
     private final PageSourceManager pageSourceManager;
 
-    public ExtractSpatialJoins(Metadata metadata, SplitManager splitManager, PageSourceManager pageSourceManager)
+    public ExtractSpatialJoins(Metadata metadata, Split splitManager, PageSourceManager pageSourceManager)
     {
         this.metadata = requireNonNull(metadata, "metadata is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
@@ -184,11 +183,11 @@ public class ExtractSpatialJoins
                 .with(source().matching(join().capturedAs(JOIN).matching(JoinNode::isCrossJoin)));
 
         private final Metadata metadata;
-        private final SplitManager splitManager;
+        private final Split splitManager;
         private final PageSourceManager pageSourceManager;
         private final FunctionAndTypeManager functionAndTypeManager;
 
-        public ExtractSpatialInnerJoin(Metadata metadata, SplitManager splitManager, PageSourceManager pageSourceManager)
+        public ExtractSpatialInnerJoin(Metadata metadata, Split splitManager, PageSourceManager pageSourceManager)
         {
             this.metadata = requireNonNull(metadata, "metadata is null");
             this.splitManager = requireNonNull(splitManager, "splitManager is null");
@@ -240,11 +239,11 @@ public class ExtractSpatialJoins
         private static final Pattern<JoinNode> PATTERN = join().matching(node -> node.getCriteria().isEmpty() && node.getFilter().isPresent() && node.getType() == LEFT);
 
         private final Metadata metadata;
-        private final SplitManager splitManager;
+        private final Split splitManager;
         private final PageSourceManager pageSourceManager;
         private final FunctionAndTypeManager functionAndTypeManager;
 
-        public ExtractSpatialLeftJoin(Metadata metadata, SplitManager splitManager, PageSourceManager pageSourceManager)
+        public ExtractSpatialLeftJoin(Metadata metadata, Split splitManager, PageSourceManager pageSourceManager)
         {
             this.metadata = requireNonNull(metadata, "metadata is null");
             this.splitManager = requireNonNull(splitManager, "splitManager is null");
@@ -297,7 +296,7 @@ public class ExtractSpatialJoins
             List<VariableReferenceExpression> outputVariables,
             CallExpression spatialComparison,
             Metadata metadata,
-            SplitManager splitManager,
+            Split splitManager,
             PageSourceManager pageSourceManager)
     {
         FunctionMetadata spatialComparisonMetadata = metadata.getFunctionAndTypeManager().getFunctionMetadata(spatialComparison.getFunctionHandle());
@@ -377,7 +376,7 @@ public class ExtractSpatialJoins
             CallExpression spatialFunction,
             Optional<RowExpression> radius,
             Metadata metadata,
-            SplitManager splitManager,
+            Split splitManager,
             PageSourceManager pageSourceManager)
     {
         FunctionAndTypeManager functionAndTypeManager = metadata.getFunctionAndTypeManager();
@@ -515,7 +514,7 @@ public class ExtractSpatialJoins
         return joinNode.getType() == INNER;
     }
 
-    private static KdbTree loadKdbTree(String tableName, Session session, Metadata metadata, SplitManager splitManager, PageSourceManager pageSourceManager)
+    private static KdbTree loadKdbTree(String tableName, Session session, Metadata metadata, Split splitManager, PageSourceManager pageSourceManager)
     {
         QualifiedObjectName name = toQualifiedObjectName(tableName, session.getCatalog().get(), session.getSchema().get());
         TableHandle tableHandle = metadata.getTableHandle(session, name)
@@ -535,9 +534,9 @@ public class ExtractSpatialJoins
         try (SplitSource splitSource = splitManager.getSplits(session, newTableHandle, UNGROUPED_SCHEDULING, WarningCollector.NOOP)) {
             while (!Thread.currentThread().isInterrupted()) {
                 SplitBatch splitBatch = getFutureValue(splitSource.getNextBatch(NOT_PARTITIONED, Lifespan.taskWide(), 1000));
-                List<Split> splits = splitBatch.getSplits();
+                List<com.facebook.presto.metadata.Split> splits = splitBatch.getSplits();
 
-                for (Split split : splits) {
+                for (com.facebook.presto.metadata.Split split : splits) {
                     try (ConnectorPageSource pageSource = pageSourceManager.createPageSource(session, split, newTableHandle, ImmutableList.of(kdbTreeColumn))) {
                         do {
                             getFutureValue(pageSource.isBlocked());

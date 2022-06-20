@@ -13,6 +13,8 @@
  */
 package com.facebook.presto.spi.connector;
 
+import com.facebook.drift.annotations.ThriftEnum;
+import com.facebook.drift.annotations.ThriftEnumValue;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;
@@ -28,11 +30,25 @@ public interface ConnectorSplitManager
             ConnectorTableLayoutHandle layout,
             SplitSchedulingContext splitSchedulingContext);
 
+    @ThriftEnum
     enum SplitSchedulingStrategy
     {
-        UNGROUPED_SCHEDULING,
-        GROUPED_SCHEDULING,
-        REWINDABLE_GROUPED_SCHEDULING,
+        UNGROUPED_SCHEDULING(1),
+        GROUPED_SCHEDULING(2),
+        REWINDABLE_GROUPED_SCHEDULING(3);
+
+        private final int value;
+
+        SplitSchedulingStrategy(int value)
+        {
+            this.value = value;
+        }
+
+        @ThriftEnumValue
+        public int getValue()
+        {
+            return value;
+        }
     }
 
     class SplitSchedulingContext

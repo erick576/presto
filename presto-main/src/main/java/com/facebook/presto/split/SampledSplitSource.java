@@ -17,6 +17,8 @@ import com.facebook.presto.execution.Lifespan;
 import com.facebook.presto.spi.ConnectorId;
 import com.facebook.presto.spi.connector.ConnectorPartitionHandle;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -34,7 +36,10 @@ public class SampledSplitSource
     private final SplitSource splitSource;
     private final double sampleRatio;
 
-    public SampledSplitSource(SplitSource splitSource, double sampleRatio)
+    @JsonCreator
+    public SampledSplitSource(
+            @JsonProperty("splitSource") SplitSource splitSource,
+            @JsonProperty("sampleRatio") double sampleRatio)
     {
         this.splitSource = requireNonNull(splitSource, "dataSource is null");
         this.sampleRatio = sampleRatio;

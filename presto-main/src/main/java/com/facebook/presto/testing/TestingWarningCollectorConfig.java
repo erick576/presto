@@ -15,6 +15,10 @@ package com.facebook.presto.testing;
 
 import com.facebook.airlift.configuration.Config;
 import com.facebook.airlift.configuration.ConfigDescription;
+import com.facebook.presto.execution.warnings.WarningCollectorConfig;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -32,6 +36,7 @@ public class TestingWarningCollectorConfig
         return this;
     }
 
+    @JsonProperty
     public int getPreloadedWarnings()
     {
         return preloadedWarnings;
@@ -45,6 +50,7 @@ public class TestingWarningCollectorConfig
         return this;
     }
 
+    @JsonProperty
     public boolean getAddWarnings()
     {
         return addWarnings;

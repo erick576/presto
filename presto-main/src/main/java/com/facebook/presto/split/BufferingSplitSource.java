@@ -18,6 +18,8 @@ import com.facebook.presto.metadata.Split;
 import com.facebook.presto.spi.ConnectorId;
 import com.facebook.presto.spi.connector.ConnectorPartitionHandle;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -35,7 +37,10 @@ public class BufferingSplitSource
     private final int bufferSize;
     private final SplitSource source;
 
-    public BufferingSplitSource(SplitSource source, int bufferSize)
+    @JsonCreator
+    public BufferingSplitSource(
+            @JsonProperty("source") SplitSource source,
+            @JsonProperty("bufferSize") int bufferSize)
     {
         this.source = requireNonNull(source, "source is null");
         this.bufferSize = bufferSize;

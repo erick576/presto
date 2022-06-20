@@ -15,10 +15,15 @@ package com.facebook.presto.catalogserver;
 
 import com.facebook.drift.annotations.ThriftMethod;
 import com.facebook.drift.annotations.ThriftService;
+import com.facebook.presto.Session;
 import com.facebook.presto.SessionRepresentation;
 import com.facebook.presto.common.CatalogSchemaName;
 import com.facebook.presto.common.QualifiedObjectName;
 import com.facebook.presto.metadata.QualifiedTablePrefix;
+import com.facebook.presto.spi.TableHandle;
+import com.facebook.presto.spi.WarningCollector;
+import com.facebook.presto.spi.connector.ConnectorSplitManager;
+import com.facebook.presto.split.SplitSource;
 import com.facebook.presto.transaction.TransactionInfo;
 
 @ThriftService("PrestoCatalogServer")
@@ -53,4 +58,8 @@ public interface CatalogServerClient
 
     @ThriftMethod
     String getReferencedMaterializedViews(TransactionInfo transactionInfo, SessionRepresentation session, QualifiedObjectName tableName);
+
+    @ThriftMethod
+    String getSplits(SessionRepresentation session, String table, ConnectorSplitManager.SplitSchedulingStrategy splitSchedulingStrategy, String warningCollector);
+
 }
