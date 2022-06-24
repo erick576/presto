@@ -24,10 +24,14 @@ import com.facebook.presto.metadata.QualifiedTablePrefix;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.ConnectorMaterializedViewDefinition;
 import com.facebook.presto.spi.TableHandle;
+import com.facebook.presto.transaction.TransactionInfo;
 import com.facebook.presto.transaction.TransactionManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -35,9 +39,12 @@ import javax.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 // TODO : Use thrift to serialize metadata objects instead of json serde on catalog server in the future
 // TODO : Add e2e tests for this class
@@ -47,6 +54,16 @@ public class RemoteMetadataManager
     private final TransactionManager transactionManager;
     private final ObjectMapper objectMapper;
     private final DriftClient<CatalogServerClient> catalogServerClient;
+    private final LoadingCache<CacheKey, Boolean> catalogExistsCache;
+    private final LoadingCache<CacheKey, Boolean> schemaExistsCache;
+    private final LoadingCache<CacheKey, List<String>> listSchemaNamesCache;
+    private final LoadingCache<CacheKey, Optional<TableHandle>> getTableHandleCache;
+    private final LoadingCache<CacheKey, List<QualifiedObjectName>> listTablesCache;
+    private final LoadingCache<CacheKey, List<QualifiedObjectName>> listViewsCache;
+    private final LoadingCache<CacheKey, Map<QualifiedObjectName, ViewDefinition>> getViewsCache;
+    private final LoadingCache<CacheKey, Optional<ViewDefinition>> getViewCache;
+    private final LoadingCache<CacheKey, Optional<ConnectorMaterializedViewDefinition>> getMaterializedViewCache;
+    private final LoadingCache<CacheKey, List<QualifiedObjectName>> getReferencedMaterializedViewsCache;
 
     @Inject
     public RemoteMetadataManager(
@@ -59,130 +76,208 @@ public class RemoteMetadataManager
         this.transactionManager = requireNonNull(transactionManager, "transactionManager is null");
         this.objectMapper = requireNonNull(objectMapper, "objectMapper is null");
         this.catalogServerClient = requireNonNull(catalogServerClient, "catalogServerClient is null");
+
+        OptionalLong cacheExpiresAfterWriteMillis = OptionalLong.of(600000);
+        long cacheMaximumSize = 1000;
+
+        this.catalogExistsCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadCatalogExists));
+        this.schemaExistsCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadSchemaExists));
+        this.listSchemaNamesCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadListSchemaNames));
+        this.getTableHandleCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadGetTableHandle));
+        this.listTablesCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadListTables));
+        this.listViewsCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadListViews));
+        this.getViewsCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadGetViews));
+        this.getViewCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadGetView));
+        this.getMaterializedViewCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadGetMaterializedView));
+        this.getReferencedMaterializedViewsCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadGetReferencedMaterializedViews));
     }
 
-    @Override
-    public boolean schemaExists(Session session, CatalogSchemaName schema)
+    /*
+        Loading Cache Methods
+     */
+
+    private Boolean loadCatalogExists(CacheKey key)
     {
         return catalogServerClient.get().schemaExists(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                schema);
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (CatalogSchemaName) key.getKey());
     }
 
-    @Override
-    public boolean catalogExists(Session session, String catalogName)
+    private Boolean loadSchemaExists(CacheKey key)
     {
         return catalogServerClient.get().catalogExists(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                catalogName);
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (String) key.getKey());
     }
 
-    @Override
-    public List<String> listSchemaNames(Session session, String catalogName)
+    private List<String> loadListSchemaNames(CacheKey key)
     {
         String schemaNamesJson = catalogServerClient.get().listSchemaNames(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                catalogName);
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (String) key.getKey());
         return schemaNamesJson.isEmpty()
                 ? ImmutableList.of()
                 : readValue(schemaNamesJson, new TypeReference<List<String>>() {});
     }
 
-    @Override
-    public Optional<TableHandle> getTableHandle(Session session, QualifiedObjectName table)
+    private Optional<TableHandle> loadGetTableHandle(CacheKey key)
     {
         String tableHandleJson = catalogServerClient.get().getTableHandle(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                table);
-        if (!tableHandleJson.isEmpty()) {
-            TableHandle tableHandle = readValue(tableHandleJson, new TypeReference<TableHandle>() {});
-            Optional<CatalogMetadata> catalogMetadata = this.transactionManager.getOptionalCatalogMetadata(session.getRequiredTransactionId(), table.getCatalogName());
-            if (catalogMetadata.isPresent()) {
-                tableHandle = new TableHandle(
-                        tableHandle.getConnectorId(),
-                        tableHandle.getConnectorHandle(),
-                        catalogMetadata.get().getTransactionHandleFor(tableHandle.getConnectorId()),
-                        tableHandle.getLayout());
-            }
-            return Optional.of(tableHandle);
-        }
-        return Optional.empty();
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (QualifiedObjectName) key.getKey());
+        return tableHandleJson.isEmpty()
+                ? Optional.empty()
+                : Optional.of(readValue(tableHandleJson, new TypeReference<TableHandle>() {}));
     }
 
-    @Override
-    public List<QualifiedObjectName> listTables(Session session, QualifiedTablePrefix prefix)
+    private List<QualifiedObjectName> loadListTables(CacheKey key)
     {
         String tableListJson = catalogServerClient.get().listTables(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                prefix);
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (QualifiedTablePrefix) key.getKey());
         return tableListJson.isEmpty()
                 ? ImmutableList.of()
                 : readValue(tableListJson, new TypeReference<List<QualifiedObjectName>>() {});
     }
 
-    @Override
-    public List<QualifiedObjectName> listViews(Session session, QualifiedTablePrefix prefix)
+    private List<QualifiedObjectName> loadListViews(CacheKey key)
     {
         String viewsListJson = catalogServerClient.get().listViews(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                prefix);
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (QualifiedTablePrefix) key.getKey());
         return viewsListJson.isEmpty()
                 ? ImmutableList.of()
                 : readValue(viewsListJson, new TypeReference<List<QualifiedObjectName>>() {});
     }
 
-    @Override
-    public Map<QualifiedObjectName, ViewDefinition> getViews(Session session, QualifiedTablePrefix prefix)
+    private Map<QualifiedObjectName, ViewDefinition> loadGetViews(CacheKey key)
     {
         String viewsMapJson = catalogServerClient.get().getViews(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                prefix);
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (QualifiedTablePrefix) key.getKey());
         return viewsMapJson.isEmpty()
                 ? ImmutableMap.of()
                 : readValue(viewsMapJson, new TypeReference<Map<QualifiedObjectName, ViewDefinition>>() {});
     }
 
-    @Override
-    public Optional<ViewDefinition> getView(Session session, QualifiedObjectName viewName)
+    private Optional<ViewDefinition> loadGetView(CacheKey key)
     {
         String viewDefinitionJson = catalogServerClient.get().getView(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                viewName);
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (QualifiedObjectName) key.getKey());
         return viewDefinitionJson.isEmpty()
                 ? Optional.empty()
                 : Optional.of(readValue(viewDefinitionJson, new TypeReference<ViewDefinition>() {}));
     }
 
-    @Override
-    public Optional<ConnectorMaterializedViewDefinition> getMaterializedView(Session session, QualifiedObjectName viewName)
+    private Optional<ConnectorMaterializedViewDefinition> loadGetMaterializedView(CacheKey key)
     {
         String connectorMaterializedViewDefinitionJson = catalogServerClient.get().getMaterializedView(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                viewName);
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (QualifiedObjectName) key.getKey());
         return connectorMaterializedViewDefinitionJson.isEmpty()
                 ? Optional.empty()
                 : Optional.of(readValue(connectorMaterializedViewDefinitionJson, new TypeReference<ConnectorMaterializedViewDefinition>() {}));
     }
 
-    @Override
-    public List<QualifiedObjectName> getReferencedMaterializedViews(Session session, QualifiedObjectName tableName)
+    private List<QualifiedObjectName> loadGetReferencedMaterializedViews(CacheKey key)
     {
         String referencedMaterializedViewsListJson = catalogServerClient.get().getReferencedMaterializedViews(
-                transactionManager.getTransactionInfo(session.getRequiredTransactionId()),
-                session.toSessionRepresentation(),
-                tableName);
+                transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
+                key.getSession().toSessionRepresentation(),
+                (QualifiedObjectName) key.getKey());
         return referencedMaterializedViewsListJson.isEmpty()
                 ? ImmutableList.of()
                 : readValue(referencedMaterializedViewsListJson, new TypeReference<List<QualifiedObjectName>>() {});
+    }
+
+    /*
+        Metadata Manager Methods
+     */
+
+    @Override
+    public boolean schemaExists(Session session, CatalogSchemaName schema)
+    {
+        return schemaExistsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, schema));
+    }
+
+    @Override
+    public boolean catalogExists(Session session, String catalogName)
+    {
+        return catalogExistsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, catalogName));
+    }
+
+    @Override
+    public List<String> listSchemaNames(Session session, String catalogName)
+    {
+        return listSchemaNamesCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, catalogName));
+    }
+
+    @Override
+    public Optional<TableHandle> getTableHandle(Session session, QualifiedObjectName table)
+    {
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, table);
+        Optional<TableHandle> tableHandle = getTableHandleCache.getUnchecked(cacheKey);
+        if (!tableHandle.isPresent()) {
+            getTableHandleCache.refresh(cacheKey);
+            tableHandle = getTableHandleCache.getUnchecked(cacheKey);
+        }
+        if (tableHandle.isPresent()) {
+            Optional<CatalogMetadata> catalogMetadata = this.transactionManager.getOptionalCatalogMetadata(session.getRequiredTransactionId(), table.getCatalogName());
+            if (catalogMetadata.isPresent()) {
+                tableHandle = Optional.of(new TableHandle(
+                        tableHandle.get().getConnectorId(),
+                        tableHandle.get().getConnectorHandle(),
+                        catalogMetadata.get().getTransactionHandleFor(tableHandle.get().getConnectorId()),
+                        tableHandle.get().getLayout()));
+            }
+        }
+        return tableHandle;
+    }
+
+    @Override
+    public List<QualifiedObjectName> listTables(Session session, QualifiedTablePrefix prefix)
+    {
+        return listTablesCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, prefix));
+    }
+
+    @Override
+    public List<QualifiedObjectName> listViews(Session session, QualifiedTablePrefix prefix)
+    {
+        return listViewsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, prefix));
+    }
+
+    @Override
+    public Map<QualifiedObjectName, ViewDefinition> getViews(Session session, QualifiedTablePrefix prefix)
+    {
+        return getViewsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, prefix));
+    }
+
+    @Override
+    public Optional<ViewDefinition> getView(Session session, QualifiedObjectName viewName)
+    {
+        return getViewCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, viewName));
+    }
+
+    @Override
+    public Optional<ConnectorMaterializedViewDefinition> getMaterializedView(Session session, QualifiedObjectName viewName)
+    {
+        return getMaterializedViewCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, viewName));
+    }
+
+    @Override
+    public List<QualifiedObjectName> getReferencedMaterializedViews(Session session, QualifiedObjectName tableName)
+    {
+        return getReferencedMaterializedViewsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, tableName));
     }
 
     private <T> T readValue(String content, TypeReference<T> valueTypeRef)
@@ -192,6 +287,63 @@ public class RemoteMetadataManager
         }
         catch (JsonProcessingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static CacheBuilder<Object, Object> newCacheBuilder(OptionalLong expiresAfterWriteMillis, long maximumSize)
+    {
+        CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder();
+        if (expiresAfterWriteMillis.isPresent()) {
+            cacheBuilder = cacheBuilder.expireAfterWrite(expiresAfterWriteMillis.getAsLong(), MILLISECONDS);
+        }
+        return cacheBuilder.maximumSize(maximumSize).recordStats();
+    }
+
+    private static class CacheKey<T>
+    {
+        private final TransactionInfo transactionInfo;
+        private final Session session;
+        private final T key;
+
+        private CacheKey(TransactionInfo transactionInfo, Session session, T key)
+        {
+            this.transactionInfo = transactionInfo;
+            this.session = session;
+            this.key = key;
+        }
+
+        public TransactionInfo getTransactionInfo()
+        {
+            return transactionInfo;
+        }
+
+        public Session getSession()
+        {
+            return session;
+        }
+
+        public T getKey()
+        {
+            return key;
+        }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            CacheKey cacheKey = (CacheKey) o;
+            return Objects.equals(key, cacheKey.key);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(key);
         }
     }
 }
