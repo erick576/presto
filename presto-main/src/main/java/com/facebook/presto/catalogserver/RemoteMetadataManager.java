@@ -43,6 +43,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 
+import static com.facebook.presto.common.RuntimeUnit.NONE;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -51,6 +52,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 public class RemoteMetadataManager
         extends DelegatingMetadataManager
 {
+    private static final String CATALOG_SERVER_CACHE_HIT_COUNT = "CATALOG_SERVER_CACHE_HIT_COUNT";
+
     private final TransactionManager transactionManager;
     private final ObjectMapper objectMapper;
     private final DriftClient<CatalogServerClient> catalogServerClient;
@@ -78,7 +81,7 @@ public class RemoteMetadataManager
         this.catalogServerClient = requireNonNull(catalogServerClient, "catalogServerClient is null");
 
         OptionalLong cacheExpiresAfterWriteMillis = OptionalLong.of(600000);
-        long cacheMaximumSize = 1000;
+        long cacheMaximumSize = 1;
 
         this.catalogExistsCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadCatalogExists));
         this.schemaExistsCache = newCacheBuilder(cacheExpiresAfterWriteMillis, cacheMaximumSize).build(CacheLoader.from(this::loadSchemaExists));
@@ -98,106 +101,117 @@ public class RemoteMetadataManager
 
     private Boolean loadCatalogExists(CacheKey key)
     {
-        return catalogServerClient.get().schemaExists(
+        CatalogServerClient.MetadataEntry<Boolean> metadataEntry = catalogServerClient.get().schemaExists(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (CatalogSchemaName) key.getKey());
+        incrementCacheHitCount(key.getSession(), metadataEntry.getIsCacheHit());
+        return metadataEntry.getReturnValue();
     }
 
     private Boolean loadSchemaExists(CacheKey key)
     {
-        return catalogServerClient.get().catalogExists(
+        CatalogServerClient.MetadataEntry<Boolean> metadataEntry = catalogServerClient.get().catalogExists(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (String) key.getKey());
+        incrementCacheHitCount(key.getSession(), metadataEntry.getIsCacheHit());
+        return metadataEntry.getReturnValue();
     }
 
     private List<String> loadListSchemaNames(CacheKey key)
     {
-        String schemaNamesJson = catalogServerClient.get().listSchemaNames(
+        CatalogServerClient.MetadataEntry<String> metadataEntry = catalogServerClient.get().listSchemaNames(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (String) key.getKey());
-        return schemaNamesJson.isEmpty()
+        incrementCacheHitCount(key.getSession(), metadataEntry.getIsCacheHit());
+        return metadataEntry.getReturnValue().isEmpty()
                 ? ImmutableList.of()
-                : readValue(schemaNamesJson, new TypeReference<List<String>>() {});
+                : readValue(metadataEntry.getReturnValue(), new TypeReference<List<String>>() {});
     }
 
     private Optional<TableHandle> loadGetTableHandle(CacheKey key)
     {
-        String tableHandleJson = catalogServerClient.get().getTableHandle(
+        CatalogServerClient.MetadataEntry<String> metadataEntry = catalogServerClient.get().getTableHandle(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (QualifiedObjectName) key.getKey());
-        return tableHandleJson.isEmpty()
+        return metadataEntry.getReturnValue().isEmpty()
                 ? Optional.empty()
-                : Optional.of(readValue(tableHandleJson, new TypeReference<TableHandle>() {}));
+                : Optional.of(readValue(metadataEntry.getReturnValue(), new TypeReference<TableHandle>() {}));
     }
 
     private List<QualifiedObjectName> loadListTables(CacheKey key)
     {
-        String tableListJson = catalogServerClient.get().listTables(
+        CatalogServerClient.MetadataEntry<String> metadataEntry = catalogServerClient.get().listTables(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (QualifiedTablePrefix) key.getKey());
-        return tableListJson.isEmpty()
+        incrementCacheHitCount(key.getSession(), metadataEntry.getIsCacheHit());
+        return metadataEntry.getReturnValue().isEmpty()
                 ? ImmutableList.of()
-                : readValue(tableListJson, new TypeReference<List<QualifiedObjectName>>() {});
+                : readValue(metadataEntry.getReturnValue(), new TypeReference<List<QualifiedObjectName>>() {});
     }
 
     private List<QualifiedObjectName> loadListViews(CacheKey key)
     {
-        String viewsListJson = catalogServerClient.get().listViews(
+        CatalogServerClient.MetadataEntry<String> metadataEntry = catalogServerClient.get().listViews(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (QualifiedTablePrefix) key.getKey());
-        return viewsListJson.isEmpty()
+        incrementCacheHitCount(key.getSession(), metadataEntry.getIsCacheHit());
+        return metadataEntry.getReturnValue().isEmpty()
                 ? ImmutableList.of()
-                : readValue(viewsListJson, new TypeReference<List<QualifiedObjectName>>() {});
+                : readValue(metadataEntry.getReturnValue(), new TypeReference<List<QualifiedObjectName>>() {});
     }
 
     private Map<QualifiedObjectName, ViewDefinition> loadGetViews(CacheKey key)
     {
-        String viewsMapJson = catalogServerClient.get().getViews(
+        CatalogServerClient.MetadataEntry<String> metadataEntry = catalogServerClient.get().getViews(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (QualifiedTablePrefix) key.getKey());
-        return viewsMapJson.isEmpty()
+        incrementCacheHitCount(key.getSession(), metadataEntry.getIsCacheHit());
+        return metadataEntry.getReturnValue().isEmpty()
                 ? ImmutableMap.of()
-                : readValue(viewsMapJson, new TypeReference<Map<QualifiedObjectName, ViewDefinition>>() {});
+                : readValue(metadataEntry.getReturnValue(), new TypeReference<Map<QualifiedObjectName, ViewDefinition>>() {});
     }
 
     private Optional<ViewDefinition> loadGetView(CacheKey key)
     {
-        String viewDefinitionJson = catalogServerClient.get().getView(
+        CatalogServerClient.MetadataEntry<String> metadataEntry = catalogServerClient.get().getView(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (QualifiedObjectName) key.getKey());
-        return viewDefinitionJson.isEmpty()
+        incrementCacheHitCount(key.getSession(), metadataEntry.getIsCacheHit());
+        return metadataEntry.getReturnValue().isEmpty()
                 ? Optional.empty()
-                : Optional.of(readValue(viewDefinitionJson, new TypeReference<ViewDefinition>() {}));
+                : Optional.of(readValue(metadataEntry.getReturnValue(), new TypeReference<ViewDefinition>() {}));
     }
 
     private Optional<ConnectorMaterializedViewDefinition> loadGetMaterializedView(CacheKey key)
     {
-        String connectorMaterializedViewDefinitionJson = catalogServerClient.get().getMaterializedView(
+        CatalogServerClient.MetadataEntry<String> metadataEntry = catalogServerClient.get().getMaterializedView(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (QualifiedObjectName) key.getKey());
-        return connectorMaterializedViewDefinitionJson.isEmpty()
+        incrementCacheHitCount(key.getSession(), metadataEntry.getIsCacheHit());
+        return metadataEntry.getReturnValue().isEmpty()
                 ? Optional.empty()
-                : Optional.of(readValue(connectorMaterializedViewDefinitionJson, new TypeReference<ConnectorMaterializedViewDefinition>() {}));
+                : Optional.of(readValue(metadataEntry.getReturnValue(), new TypeReference<ConnectorMaterializedViewDefinition>() {}));
     }
 
     private List<QualifiedObjectName> loadGetReferencedMaterializedViews(CacheKey key)
     {
-        String referencedMaterializedViewsListJson = catalogServerClient.get().getReferencedMaterializedViews(
+        CatalogServerClient.MetadataEntry<String> metadataEntry = catalogServerClient.get().getReferencedMaterializedViews(
                 transactionManager.getTransactionInfo(key.getSession().getRequiredTransactionId()),
                 key.getSession().toSessionRepresentation(),
                 (QualifiedObjectName) key.getKey());
-        return referencedMaterializedViewsListJson.isEmpty()
+        incrementCacheHitCount(key.getSession(), metadataEntry.getIsCacheHit());
+        return metadataEntry.getReturnValue().isEmpty()
                 ? ImmutableList.of()
-                : readValue(referencedMaterializedViewsListJson, new TypeReference<List<QualifiedObjectName>>() {});
+                : readValue(metadataEntry.getReturnValue(), new TypeReference<List<QualifiedObjectName>>() {});
     }
 
     /*
@@ -207,25 +221,32 @@ public class RemoteMetadataManager
     @Override
     public boolean schemaExists(Session session, CatalogSchemaName schema)
     {
-        return schemaExistsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, schema));
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, schema);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, schemaExistsCache));
+        return schemaExistsCache.getUnchecked(cacheKey);
     }
 
     @Override
     public boolean catalogExists(Session session, String catalogName)
     {
-        return catalogExistsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, catalogName));
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, catalogName);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, catalogExistsCache));
+        return catalogExistsCache.getUnchecked(cacheKey);
     }
 
     @Override
     public List<String> listSchemaNames(Session session, String catalogName)
     {
-        return listSchemaNamesCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, catalogName));
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, catalogName);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, listSchemaNamesCache));
+        return listSchemaNamesCache.getUnchecked(cacheKey);
     }
 
     @Override
     public Optional<TableHandle> getTableHandle(Session session, QualifiedObjectName table)
     {
         CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, table);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, getTableHandleCache));
         Optional<TableHandle> tableHandle = getTableHandleCache.getUnchecked(cacheKey);
         if (!tableHandle.isPresent()) {
             getTableHandleCache.refresh(cacheKey);
@@ -247,37 +268,49 @@ public class RemoteMetadataManager
     @Override
     public List<QualifiedObjectName> listTables(Session session, QualifiedTablePrefix prefix)
     {
-        return listTablesCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, prefix));
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, prefix);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, listTablesCache));
+        return listTablesCache.getUnchecked(cacheKey);
     }
 
     @Override
     public List<QualifiedObjectName> listViews(Session session, QualifiedTablePrefix prefix)
     {
-        return listViewsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, prefix));
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, prefix);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, listViewsCache));
+        return listViewsCache.getUnchecked(cacheKey);
     }
 
     @Override
     public Map<QualifiedObjectName, ViewDefinition> getViews(Session session, QualifiedTablePrefix prefix)
     {
-        return getViewsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, prefix));
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, prefix);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, getViewsCache));
+        return getViewsCache.getUnchecked(cacheKey);
     }
 
     @Override
     public Optional<ViewDefinition> getView(Session session, QualifiedObjectName viewName)
     {
-        return getViewCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, viewName));
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, viewName);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, getViewCache));
+        return getViewCache.getUnchecked(cacheKey);
     }
 
     @Override
     public Optional<ConnectorMaterializedViewDefinition> getMaterializedView(Session session, QualifiedObjectName viewName)
     {
-        return getMaterializedViewCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, viewName));
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, viewName);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, getMaterializedViewCache));
+        return getMaterializedViewCache.getUnchecked(cacheKey);
     }
 
     @Override
     public List<QualifiedObjectName> getReferencedMaterializedViews(Session session, QualifiedObjectName tableName)
     {
-        return getReferencedMaterializedViewsCache.getUnchecked(new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, tableName));
+        CacheKey cacheKey = new CacheKey(transactionManager.getTransactionInfo(session.getRequiredTransactionId()), session, tableName);
+        incrementCacheHitCount(session, isCacheHit(cacheKey, getReferencedMaterializedViewsCache));
+        return getReferencedMaterializedViewsCache.getUnchecked(cacheKey);
     }
 
     private <T> T readValue(String content, TypeReference<T> valueTypeRef)
@@ -288,6 +321,24 @@ public class RemoteMetadataManager
         catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static void incrementCacheHitCount(Session session, boolean isCacheHit)
+    {
+        if (isCacheHit) {
+            session.getRuntimeStats().addMetricValue(CATALOG_SERVER_CACHE_HIT_COUNT, NONE, 1);
+        }
+        else {
+            session.getRuntimeStats().addMetricValue(CATALOG_SERVER_CACHE_HIT_COUNT, NONE, 0);
+        }
+    }
+
+    private static boolean isCacheHit(CacheKey cacheKey, LoadingCache loadingCache)
+    {
+        if (loadingCache.getIfPresent(cacheKey) != null) {
+            return true;
+        }
+        return false;
     }
 
     private static CacheBuilder<Object, Object> newCacheBuilder(OptionalLong expiresAfterWriteMillis, long maximumSize)
