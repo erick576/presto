@@ -13,67 +13,17 @@
  */
 package com.facebook.presto.catalogserver;
 
-import com.facebook.drift.annotations.ThriftConstructor;
-import com.facebook.drift.annotations.ThriftField;
 import com.facebook.drift.annotations.ThriftMethod;
 import com.facebook.drift.annotations.ThriftService;
-import com.facebook.drift.annotations.ThriftStruct;
 import com.facebook.presto.SessionRepresentation;
 import com.facebook.presto.common.CatalogSchemaName;
 import com.facebook.presto.common.QualifiedObjectName;
 import com.facebook.presto.metadata.QualifiedTablePrefix;
 import com.facebook.presto.transaction.TransactionInfo;
 
-import java.util.Objects;
-
 @ThriftService("PrestoCatalogServer")
 public interface CatalogServerClient
 {
-    @ThriftStruct
-    public static class MetadataEntry<T>
-    {
-        private final T returnValue;
-        private final boolean isCacheHit;
-
-        @ThriftConstructor
-        public MetadataEntry(T returnValue, boolean isCacheHit)
-        {
-            this.returnValue = returnValue;
-            this.isCacheHit = isCacheHit;
-        }
-
-        @ThriftField(1)
-        public T getReturnValue()
-        {
-            return returnValue;
-        }
-
-        @ThriftField(2)
-        public boolean getIsCacheHit()
-        {
-            return isCacheHit;
-        }
-
-        @Override
-        public boolean equals(Object o)
-        {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            MetadataEntry metadataKey = (MetadataEntry) o;
-            return Objects.equals(returnValue, metadataKey.getReturnValue());
-        }
-
-        @Override
-        public int hashCode()
-        {
-            return Objects.hash(returnValue);
-        }
-    }
-
     @ThriftMethod
     MetadataEntry<Boolean> schemaExists(TransactionInfo transactionInfo, SessionRepresentation session, CatalogSchemaName schema);
 
