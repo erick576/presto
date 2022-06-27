@@ -24,6 +24,7 @@ public class RuntimeMetricName
     {
     }
 
+    public static final String CATALOG_SERVER_CACHE_HIT_COUNT = "catalogServerCacheHitCount";
     public static final String DRIVER_COUNT_PER_TASK = "driverCountPerTask";
     public static final String TASK_ELAPSED_TIME_NANOS = "taskElapsedTimeNanos";
     public static final String OPTIMIZED_WITH_MATERIALIZED_VIEW_COUNT = "optimizedWithMaterializedViewCount";

@@ -46,9 +46,9 @@ class TestingCatalogServerClient
     public MetadataEntry<String> getTableHandle(TransactionInfo transactionInfo, SessionRepresentation session, QualifiedObjectName table)
     {
         return new MetadataEntry<>(
-                "{\"connectorId\":\"$info_schema@system\",\"connectorHandle\":{\"@type\":\"$info_schema\",\"catalogName\":\"system\",\"schemaName\":\"information_schema\"," +
-                "\"tableName\":\"schemata\"},\"transaction\":{\"@type\":\"$info_schema\",\"transactionId\":\"ffe9ae3e-60de-4175-a0b5-d635767085fa\"}}",
-                false);
+                "{\"connectorId\":\"$info_schema@system\",\"connectorHandle\":{\"@type\":\"$info_schema\",\"catalogName\":\"system\",\"schemaName\"" +
+                        ":\"information_schema\",\"tableName\":\"schemata\"},\"transaction\":{\"@type\":\"$info_schema\",\"transactionId\"" +
+                        ":\"ffe9ae3e-60de-4175-a0b5-d635767085fa\"}}", false);
     }
 
     @Override
@@ -85,11 +85,11 @@ class TestingCatalogServerClient
     public MetadataEntry<String> getMaterializedView(TransactionInfo transactionInfo, SessionRepresentation session, QualifiedObjectName viewName)
     {
         return new MetadataEntry<>(
-                "{\"originalSql\":\"SELECT\\n  name\\n, nationkey\\nFROM\\n  test_customer_base\\n\",\"schema\":\"tpch\",\"table\":\"eric\",\"baseTables\":[{\"schema\":\"tpch\"," +
-                "\"table\":\"test_customer_base\"}],\"owner\":\"ericn576\",\"columnMapping\":[{\"viewColumn\":{\"tableName\":{\"schema\":\"tpch\",\"table\":\"eric\"}," +
-                "\"columnName\":\"name\",\"isDirectMapped\":true},\"baseTableColumns\":[{\"tableName\":{\"schema\":\"tpch\",\"table\":\"test_customer_base\"}," +
-                "\"columnName\":\"name\",\"isDirectMapped\":true}]}],\"baseTablesOnOuterJoinSide\":[],\"validRefreshColumns\":[\"nationkey\"]}",
-                false);
+                "{\"originalSql\":\"SELECT\\n  name\\n, nationkey\\nFROM\\n  test_customer_base\\n\",\"schema\":\"tpch\",\"table\":\"eric\"," +
+                        "\"baseTables\":[{\"schema\":\"tpch\",\"table\":\"test_customer_base\"}],\"owner\":\"ericn576\",\"columnMapping\":[{\"viewColumn\":{" +
+                        "\"tableName\":{\"schema\":\"tpch\",\"table\":\"eric\"},\"columnName\":\"name\",\"isDirectMapped\":true},\"baseTableColumns\":[{\"tableName\":" +
+                        "{\"schema\":\"tpch\",\"table\":\"test_customer_base\"},\"columnName\":\"name\",\"isDirectMapped\":true}]}],\"baseTablesOnOuterJoinSide\":[]," +
+                        "\"validRefreshColumns\":[\"nationkey\"]}", false);
     }
 
     @Override
