@@ -334,7 +334,12 @@ public class DistributedQueryRunner
         int availableCoordinators = 0;
         while (availableCoordinators != coordinators.size()) {
             MILLISECONDS.sleep(10);
-            availableCoordinators = getResourceManager().get().getNodeManager().getCoordinators().size();
+            if (resourceManager.isPresent()) {
+                availableCoordinators += getResourceManager().get().getNodeManager().getCoordinators().size();
+            }
+            if (catalogServer.isPresent()) {
+                availableCoordinators += getCatalogServer().get().getNodeManager().getCoordinators().size();
+            }
         }
     }
 
@@ -521,6 +526,11 @@ public class DistributedQueryRunner
     public Optional<TestingPrestoServer> getResourceManager()
     {
         return resourceManager;
+    }
+
+    public Optional<TestingPrestoServer> getCatalogServer()
+    {
+        return catalogServer;
     }
 
     public List<TestingPrestoServer> getCoordinatorWorkers()
